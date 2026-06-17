@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems; // ต้องเพิ่มตัวนี้เพื่อเช็ก UI
 
 public class CameraController : MonoBehaviour
 {
@@ -13,7 +14,7 @@ public class CameraController : MonoBehaviour
     private float fixedZ;
 
     private bool isDragging = false;
-    private Vector3 dragOrigin; // เปลี่ยนมาเก็บตำแหน่งเริ่มลากแบบ Vector3
+    private Vector3 dragOrigin;
 
     void Start()
     {
@@ -35,6 +36,9 @@ public class CameraController : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
+            // ถ้าคลิกโดน UI อยู่ ให้หยุดทำงาน (ห้ามลากกล้อง)
+            if (EventSystem.current.IsPointerOverGameObject()) return;
+
             isDragging = true;
             dragOrigin = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         }
@@ -43,7 +47,7 @@ public class CameraController : MonoBehaviour
         {
             Vector3 difference = dragOrigin - Camera.main.ScreenToWorldPoint(Input.mousePosition);
             MoveCamera(transform.position.x + difference.x);
-            dragOrigin = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            // ไม่อัปเดต dragOrigin เพื่อให้เลื่อนแบบ offset ต่อเนื่อง
         }
 
         if (Input.GetMouseButtonUp(0)) isDragging = false;
@@ -57,6 +61,9 @@ public class CameraController : MonoBehaviour
 
             if (touch.phase == TouchPhase.Began)
             {
+                // ถ้าทัชโดน UI อยู่ ให้หยุดทำงาน
+                if (EventSystem.current.IsPointerOverGameObject(touch.fingerId)) return;
+
                 isDragging = true;
                 dragOrigin = Camera.main.ScreenToWorldPoint(touch.position);
             }
@@ -65,10 +72,9 @@ public class CameraController : MonoBehaviour
             {
                 Vector3 difference = dragOrigin - Camera.main.ScreenToWorldPoint(touch.position);
                 MoveCamera(transform.position.x + difference.x);
-                dragOrigin = Camera.main.ScreenToWorldPoint(touch.position);
             }
 
-            if (touch.phase == TouchPhase.Ended) isDragging = false;
+            if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled) isDragging = false;
         }
     }
 
