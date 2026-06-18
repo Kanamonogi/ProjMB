@@ -589,7 +589,7 @@ GameObject:
   - component: {fileID: 364316566}
   m_Layer: 0
   m_Name: PlayerBase
-  m_TagString: Untagged
+  m_TagString: PlayerBase
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1896,7 +1896,7 @@ GameObject:
   - component: {fileID: 1554572718}
   m_Layer: 0
   m_Name: EnemyMockup
-  m_TagString: Untagged
+  m_TagString: EnemyBase
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2213,7 +2213,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DragDropCard
   spawnCost: 10
-  monsterPrefab: {fileID: 0}
+  monsterPrefab: {fileID: 2713571542730572222, guid: 1cff48fc36e66324f8aa6133d77dcb1d, type: 3}
   spawnAreaRenderer: {fileID: 769136330}
   highlightColor: {r: 0, g: 1, b: 0, a: 0.4}
 --- !u!1 &1698924613
@@ -2560,7 +2560,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DragDropCard
   spawnCost: 10
-  monsterPrefab: {fileID: 0}
+  monsterPrefab: {fileID: 2713571542730572222, guid: 1cff48fc36e66324f8aa6133d77dcb1d, type: 3}
   spawnAreaRenderer: {fileID: 769136330}
   highlightColor: {r: 0, g: 1, b: 0, a: 0.4}
 --- !u!1 &1910881842
