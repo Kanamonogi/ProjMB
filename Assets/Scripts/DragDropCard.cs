@@ -81,6 +81,8 @@ public class DragDropCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
             new Vector3(eventData.position.x, eventData.position.y, 0f)
         );
         worldPos.z = 0f;
+        // ลองเปลี่ยนตัวเลข -2f เป็นค่า Y ของพื้นดินในเกมคุณดูครับ
+        worldPos.y = -2f;
 
         // ✅ เช็ค Frontline (แทน Collider เดิม)
         bool isValidZone = FrontlineManager.Instance.IsValidSpawnPosition(worldPos.x);
