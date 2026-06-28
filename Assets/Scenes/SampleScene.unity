@@ -474,7 +474,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -267.25, y: 100}
+  m_AnchoredPosition: {x: -250.25, y: 100}
   m_SizeDelta: {x: 176.2182, y: 32.5911}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &337654249
@@ -497,7 +497,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Soul: 0/50'
+  m_text: 20/50
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -563,7 +563,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 14.520298, w: 0}
+  m_margin: {x: 0, y: 0, z: 81.21239, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -2190,13 +2190,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b70c6c6130f461a42ac6f72ac329129d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  currentSoulPoints: 0
+  currentSoulPoints: 20
   maxSoulPoints: 50
   soulRegenRate: 1
-  txtSoulPoints: {fileID: 337654249}
-  maxBaseHP: 100
+  soulPointsText: {fileID: 337654249}
+  playerBaseHP: 100
+  maxPlayerBaseHP: 100
+  enemyBaseHP: 100
+  maxEnemyBaseHP: 100
   playerBaseSlider: {fileID: 1841792678}
-  txtGameStatus: {fileID: 2009812177}
 --- !u!4 &1626236771
 Transform:
   m_ObjectHideFlags: 0

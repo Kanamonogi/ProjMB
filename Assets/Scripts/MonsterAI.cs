@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class MonsterAI : MonoBehaviour
 {
+    [Header("Data Asset")]
+    public MonsterDataSO monsterData; // ช่องสำหรับลากแฟ้มประวัติมาใส่
     // ─────────────────────────────────────────
     // IDENTITY & STATS
     // ─────────────────────────────────────────
@@ -29,18 +31,36 @@ public class MonsterAI : MonoBehaviour
 
     void Start()
     {
-        currentHP = maxHP;
+    // ตรวจสอบความปลอดภัยว่าลากแฟ้มข้อมูลมาใส่หรือยัง
+    if (monsterData != null)
+    {
+        maxHP = monsterData.maxHP;
+        moveSpeed = monsterData.moveSpeed;
+        attackDamage = monsterData.attackDamage;
+        attackRange = monsterData.attackRange;
+        detectionRange = monsterData.detectionRange;
+        attackCooldown = monsterData.attackCooldown;
+    }
+    else
+    {
+        Debug.LogWarning($"[MonsterAI] {gameObject.name} ลืมใส่ MonsterDataSO! จะใช้ค่า Default ในโค้ดแทน");
+    }
 
-        // กำหนด Tag ของฝั่งตรงข้ามอัตโนมัติจาก isPlayer
-        enemyMonsterTag = isPlayer ? "EnemyMonster" : "PlayerMonster";
-        enemyBaseTag    = isPlayer ? "EnemyBase"    : "PlayerBase";
+    currentHP = maxHP;
+
+    // กำหนด Tag ของฝั่งตรงข้ามอัตโนมัติจาก isPlayer
+    enemyMonsterTag = isPlayer ? "EnemyMonster" : "PlayerMonster";
+    enemyBaseTag    = isPlayer ? "EnemyBase"    : "PlayerBase";
+
+    // เติมบรรทัดนี้ไว้ล่างสุดของฟังก์ชัน Start() เพื่อดูค่าที่แท้จริงหลังบ้าน
+    Debug.Log($"[CHECK SO] {gameObject.name} โหลดสำเร็จ! ดาเมจจริงในระบบ = {attackDamage} | ความเร็ว = {moveSpeed}");
     }
 
     void Update()
     {
         if (isDead) return;
 
-        // ── STEP 1: เช็คว่ามีอะไรอยู่ในระยะ "attackRange" ไหม (edge-to-edge ผ่าน Collider) ──
+        // ── STEP 1: เช็คว่ามีอะไรอยู่ในระยะ "attackRange" ไหม ──
         Transform attackTarget = FindTargetInRadius(attackRange);
 
         if (attackTarget != null)
@@ -51,7 +71,7 @@ public class MonsterAI : MonoBehaviour
             return;
         }
 
-        // ── STEP 2: ไม่มีอะไรอยู่ในระยะตี → เช็คว่ามีศัตรูอยู่ใน detectionRange ไหม ──
+        // ── STEP 2: ไม่มีอะไรอยู่ในระยะตี → เช็คระยะมองเห็น ──
         Transform detected = FindTargetInRadius(detectionRange);
 
         if (detected != null)
@@ -65,8 +85,8 @@ public class MonsterAI : MonoBehaviour
             MoveForward();
         }
 
-        // รีเซ็ต timer ถ้าหลุดระยะตีไปแล้ว (ป้องกันการตีทันทีที่กลับเข้าระยะ)
-        attackTimer = 0f;
+        // ✅ [แก้ไขแล้ว] ย้ายมาใส่ตรงนี้ เพื่อรีเซ็ตเวลาเฉพาะตอนที่ไม่ได้ทำการโจมตีเท่านั้น
+        attackTimer = 0f; 
     }
 
     // ─────────────────────────────────────────
