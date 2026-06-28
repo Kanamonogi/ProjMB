@@ -6,79 +6,67 @@ public class MonsterAI : MonoBehaviour
     // IDENTITY & STATS
     // ─────────────────────────────────────────
     [Header("Identity")]
-    public bool isPlayer = true;            // true = ฝั่งผู้เล่น, false = ฝั่งศัตรู
+    public bool isPlayer = true;
 
     [Header("Stats")]
     public float maxHP = 50f;
     public float moveSpeed = 2f;
     public float attackDamage = 10f;
-    public float attackRange = 1.2f;        // ระยะโจมตี
-    public float detectionRange = 8f;       // ระยะมองเห็นศัตรู
-    public float attackCooldown = 1.5f;     // วินาทีต่อการโจมตี 1 ครั้ง
+    public float attackRange = 1.2f;        // radius for OverlapCircleAll attack check
+    public float detectionRange = 8f;       // radius for spotting targets
+    public float attackCooldown = 1.5f;
 
     // ─────────────────────────────────────────
     // PRIVATE
     // ─────────────────────────────────────────
     private float currentHP;
-    private float attackTimer = 0f;         // นับเวลาระหว่างการโจมตี
-    private Transform currentTarget;        // เป้าหมายปัจจุบัน
+    private float attackTimer = 0f;
+    private Transform currentTarget;
     private bool isDead = false;
 
-    // Tags ฝั่งตรงข้าม (เซ็ตอัตโนมัติจาก isPlayer)
     private string enemyMonsterTag;
     private string enemyBaseTag;
 
-    // ─────────────────────────────────────────
-    // STATE MACHINE
-    // ─────────────────────────────────────────
-    private enum State { Moving, Attacking }
-    private State currentState = State.Moving;
-
-    // ─────────────────────────────────────────
-    // INIT
-    // ─────────────────────────────────────────
     void Start()
     {
         currentHP = maxHP;
 
-        // กำหนด Tag ศัตรูตาม isPlayer
+        // กำหนด Tag ของฝั่งตรงข้ามอัตโนมัติจาก isPlayer
         enemyMonsterTag = isPlayer ? "EnemyMonster" : "PlayerMonster";
         enemyBaseTag    = isPlayer ? "EnemyBase"    : "PlayerBase";
     }
 
-    // ─────────────────────────────────────────
-    // MAIN LOOP
-    // ─────────────────────────────────────────
     void Update()
     {
         if (isDead) return;
 
-        // หาเป้าหมายที่ใกล้ที่สุดในระยะ detectionRange
-        currentTarget = FindNearestTarget();
+        // ── STEP 1: เช็คว่ามีอะไรอยู่ในระยะ "attackRange" ไหม (edge-to-edge ผ่าน Collider) ──
+        Transform attackTarget = FindTargetInRadius(attackRange);
 
-        if (currentTarget != null)
+        if (attackTarget != null)
         {
-            float distToTarget = Vector2.Distance(transform.position, currentTarget.position);
+            // มีศัตรูอยู่ในระยะตี → หยุดเดิน, โจมตี
+            currentTarget = attackTarget;
+            HandleAttack();
+            return;
+        }
 
-            if (distToTarget <= attackRange)
-            {
-                // ศัตรูอยู่ในระยะโจมตี → หยุดและโจมตี
-                currentState = State.Attacking;
-                HandleAttack();
-            }
-            else
-            {
-                // เห็นศัตรูแต่ยังไกลเกินไป → เดินเข้าหา
-                currentState = State.Moving;
-                MoveToward(currentTarget.position);
-            }
+        // ── STEP 2: ไม่มีอะไรอยู่ในระยะตี → เช็คว่ามีศัตรูอยู่ใน detectionRange ไหม ──
+        Transform detected = FindTargetInRadius(detectionRange);
+
+        if (detected != null)
+        {
+            // เห็นศัตรูแต่ยังไกล → เดินเข้าหา
+            MoveToward(detected.position);
         }
         else
         {
-            // ไม่มีเป้าหมาย → เดินหน้าต่อ
-            currentState = State.Moving;
+            // ไม่เห็นอะไรเลย → เดินหน้าตามทิศทางทีม
             MoveForward();
         }
+
+        // รีเซ็ต timer ถ้าหลุดระยะตีไปแล้ว (ป้องกันการตีทันทีที่กลับเข้าระยะ)
+        attackTimer = 0f;
     }
 
     // ─────────────────────────────────────────
@@ -92,44 +80,42 @@ public class MonsterAI : MonoBehaviour
 
     void MoveToward(Vector3 targetPosition)
     {
-        // เดินเฉพาะแกน X เท่านั้น (2D Horizontal)
         Vector3 direction = (targetPosition.x > transform.position.x) ? Vector3.right : Vector3.left;
         transform.Translate(direction * moveSpeed * Time.deltaTime);
     }
 
     // ─────────────────────────────────────────
-    // DETECTION — หา Target ที่ใกล้สุด
+    // DETECTION / RANGE CHECK
+    // CRITICAL FIX: Uses Physics2D.OverlapCircleAll (edge-to-edge via colliders)
+    // instead of Vector2.Distance (center-to-center), so attacks correctly
+    // register against large BoxCollider2D bases.
     // ─────────────────────────────────────────
-    Transform FindNearestTarget()
+    Transform FindTargetInRadius(float radius)
     {
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius);
+
         Transform nearest = null;
-        float nearestDist = detectionRange;
-
-        // เช็คทั้ง Monster ฝั่งตรงข้าม และ Base ฝั่งตรงข้าม
-        nearest = CheckTag(enemyMonsterTag, nearest, ref nearestDist);
-        nearest = CheckTag(enemyBaseTag,    nearest, ref nearestDist);
-
-        return nearest;
-    }
-
-    Transform CheckTag(string tag, Transform currentNearest, ref float nearestDist)
-    {
-        // ใช้ OverlapCircle หา Collider ทุกอันในระยะ detectionRange
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, detectionRange);
+        float nearestDist = float.MaxValue;
 
         foreach (Collider2D hit in hits)
         {
-            if (!hit.CompareTag(tag)) continue;
+            if (hit.gameObject == this.gameObject) continue;
 
-            float dist = Vector2.Distance(transform.position, hit.transform.position);
+            bool isValidTarget = hit.CompareTag(enemyMonsterTag) || hit.CompareTag(enemyBaseTag);
+            if (!isValidTarget) continue;
+
+            // ใช้ ClosestPoint เพื่อหาระยะจากขอบ Collider จริงๆ (รองรับ Base ที่เป็น BoxCollider2D ใหญ่)
+            Vector2 closestPoint = hit.ClosestPoint(transform.position);
+            float dist = Vector2.Distance(transform.position, closestPoint);
+
             if (dist < nearestDist)
             {
                 nearestDist = dist;
-                currentNearest = hit.transform;
+                nearest = hit.transform;
             }
         }
 
-        return currentNearest;
+        return nearest;
     }
 
     // ─────────────────────────────────────────
@@ -150,22 +136,20 @@ public class MonsterAI : MonoBehaviour
     {
         if (target == null) return;
 
-        // ── ใส่ Animation / VFX ตรงนี้ในอนาคต ──
-        // OnAttackAnimationTrigger();
+        // ── ใส่ Attack Animation / VFX ตรงนี้ในอนาคต ──
 
-        // พยายาม Damage MonsterAI ก่อน
+        // ลองหา MonsterAI ก่อน (ถ้าเป้าหมายเป็น Monster)
         MonsterAI targetMonster = target.GetComponent<MonsterAI>();
         if (targetMonster != null)
         {
             targetMonster.TakeDamage(attackDamage);
+            Debug.Log($"[MonsterAI] {gameObject.name} attacked monster {target.name} for {attackDamage} dmg.");
             return;
         }
 
-        // ถ้าไม่ใช่ Monster → พยายาม Damage Base
-        // Step 4 จะเพิ่ม BaseHP script → เรียก TakeDamage ที่นั่น
-        GameManager.Instance.DamageBase(attackDamage);
-
-        Debug.Log($"[MonsterAI] {gameObject.name} attacked {target.name} for {attackDamage} damage.");
+        // ถ้าไม่ใช่ Monster → ต้องเป็น Base → แจ้ง GameManager พร้อมระบุฝั่งผู้โจมตี
+        GameManager.Instance.DamageBase(attackDamage, isPlayer);
+        Debug.Log($"[MonsterAI] {gameObject.name} attacked base {target.name} for {attackDamage} dmg.");
     }
 
     // ─────────────────────────────────────────
@@ -178,7 +162,6 @@ public class MonsterAI : MonoBehaviour
         currentHP -= damage;
 
         // ── ใส่ Hit Animation / VFX ตรงนี้ในอนาคต ──
-        // OnHitAnimationTrigger();
 
         Debug.Log($"[MonsterAI] {gameObject.name} took {damage} dmg | HP: {currentHP}/{maxHP}");
 
@@ -193,22 +176,19 @@ public class MonsterAI : MonoBehaviour
         isDead = true;
 
         // ── ใส่ Death Animation / VFX ตรงนี้ในอนาคต ──
-        // OnDeathAnimationTrigger();
 
         Debug.Log($"[MonsterAI] {gameObject.name} died.");
         Destroy(gameObject);
     }
 
     // ─────────────────────────────────────────
-    // DEBUG — แสดง Detection Range ใน Scene View
+    // DEBUG GIZMOS
     // ─────────────────────────────────────────
     void OnDrawGizmosSelected()
     {
-        // วงสีเหลือง = Detection Range
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
 
-        // วงสีแดง = Attack Range
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
     }

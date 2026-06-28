@@ -54,16 +54,15 @@ public class DragDropCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
     }
 
     // ─────────────────────────────────────────
-    // 2. ระหว่างลาก — แบบใหม่ ล็อกติดปลายเมาส์เป๊ะๆ
+    // 2. ระหว่างลาก — ล็อกติดปลายเมาส์เป๊ะๆ
     // ─────────────────────────────────────────
     public void OnDrag(PointerEventData eventData)
     {
-    // ใช้ตำแหน่งหน้าจอของเมาส์ตรงๆ 1:1 บังคับให้การ์ดตามเมาส์ทันที
-    transform.position = eventData.position;
+        transform.position = eventData.position;
     }
 
     // ─────────────────────────────────────────
-    // 3. ปล่อย — เช็ค Frontline แทน Collider
+    // 3. ปล่อย — เช็ค Frontline และหักแต้มวิญญาณ
     // ─────────────────────────────────────────
     public void OnEndDrag(PointerEventData eventData)
     {
@@ -81,28 +80,29 @@ public class DragDropCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
             new Vector3(eventData.position.x, eventData.position.y, 0f)
         );
         worldPos.z = 0f;
-        // ลองเปลี่ยนตัวเลข -2f เป็นค่า Y ของพื้นดินในเกมคุณดูครับ
-        worldPos.y = -2f;
+        
+        // ล็อกแกน Y ให้มอนสเตอร์ตกพื้นระดับเดียวกันเสมอ (ปรับแก้ตามระดับพื้นแมพคุณได้)
+        worldPos.y = -2f; 
 
-        // ✅ เช็ค Frontline (แทน Collider เดิม)
+        // เช็คเขต Frontline ว่าอยู่ในพื้นที่อนุญาตไหม
         bool isValidZone = FrontlineManager.Instance.IsValidSpawnPosition(worldPos.x);
 
-        // เช็คแต้มวิญญาณ — SpendSoulPoints() หักแต้มทันทีถ้าพอ
+        // เช็คแต้มวิญญาณผ่าน GameManager ตัวใหม่ (หักแต้มทันทีหากพอ)
         bool hasEnoughPoints = GameManager.Instance.SpendSoulPoints(spawnCost);
 
         if (isValidZone && hasEnoughPoints)
         {
-            // ✅ ถูกทั้งคู่ → เสกมอนสเตอร์
+            // ✅ ผ่านเงื่อนไขทั้งคู่ -> เสกมอนสเตอร์
             SpawnMonster(worldPos);
         }
         else if (!isValidZone && hasEnoughPoints)
         {
-            // วางผิดที่ → คืนแต้ม
+            // ❌ วางผิดที่ แต่ดันตัดแต้มไปแล้ว -> คืนแต้มให้ผู้เล่น
             GameManager.Instance.AddSoulPoints(spawnCost);
             Debug.Log("[DragDropCard] Dropped in Red Zone! Soul Points refunded.");
         }
-        // ถ้า !hasEnoughPoints → GameManager แจ้งเตือนไปแล้ว ไม่ต้องทำอะไร
 
+        // ส่งการ์ดกลับเข้า Deck แผงด้านล่างเสมอ
         SnapBack();
     }
 
@@ -119,8 +119,11 @@ public class DragDropCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
 
         GameObject newMonster = Instantiate(monsterPrefab, position, Quaternion.identity);
 
-        // แจ้ง FrontlineManager ให้ติดตาม Monster ตัวนี้
-        FrontlineManager.Instance.RegisterMonster(newMonster.transform);
+        // แจ้ง FrontlineManager ให้จับตาดูความสูงแกน X ของมอนสเตอร์ตัวนี้
+        if (FrontlineManager.Instance != null)
+        {
+            FrontlineManager.Instance.RegisterMonster(newMonster.transform);
+        }
 
         Debug.Log($"[DragDropCard] Monster spawned at {position}");
     }

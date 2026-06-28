@@ -1,37 +1,40 @@
 using UnityEngine;
-using UnityEngine.Events;
+using UnityEngine.UI;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
     // ─────────────────────────────────────────
-    // BASE HP
-    // ─────────────────────────────────────────
-    [Header("Base HP")]
-    public float maxBaseHP = 100f;
-    private float currentBaseHP;
-
-    // ─────────────────────────────────────────
     // SOUL POINTS
     // ─────────────────────────────────────────
     [Header("Soul Points")]
+    public float currentSoulPoints = 20f;
     public float maxSoulPoints = 100f;
-    public float startingSoulPoints = 20f;
-    public float soulPointsPerSecond = 5f;
-    private float currentSoulPoints;
+    public float soulRegenRate = 5f;       // ต่อวินาที
+
+    [Header("Soul Points UI")]
+    public TextMeshProUGUI soulPointsText; // ลาก TMP Text มาใส่
 
     private float soulRegenTimer = 0f;
 
     // ─────────────────────────────────────────
-    // EVENTS (UI will listen to these)
+    // BASE HP
     // ─────────────────────────────────────────
-    public UnityEvent<float, float> onBaseHPChanged;     // (current, max)
-    public UnityEvent<float, float> onSoulPointsChanged; // (current, max)
-    public UnityEvent onGameOver;
+    [Header("Base HP")]
+    public float playerBaseHP = 100f;
+    public float maxPlayerBaseHP = 100f;
+    public float enemyBaseHP = 100f;
+    public float maxEnemyBaseHP = 100f;
+
+    [Header("Base HP UI")]
+    public Slider playerBaseSlider;        // ลาก Slider ของฝั่งผู้เล่นมาใส่
+
+    private bool isGameOver = false;
 
     // ─────────────────────────────────────────
-    // SINGLETON SETUP
+    // SINGLETON
     // ─────────────────────────────────────────
     void Awake()
     {
@@ -45,13 +48,8 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        // Initialize values
-        currentBaseHP = maxBaseHP;
-        currentSoulPoints = startingSoulPoints;
-
-        // Notify UI of starting values
-        onBaseHPChanged?.Invoke(currentBaseHP, maxBaseHP);
-        onSoulPointsChanged?.Invoke(currentSoulPoints, maxSoulPoints);
+        UpdateSoulPointsUI();
+        UpdatePlayerBaseUI();
     }
 
     // ─────────────────────────────────────────
@@ -59,28 +57,21 @@ public class GameManager : MonoBehaviour
     // ─────────────────────────────────────────
     void Update()
     {
-        soulRegenTimer += Time.deltaTime;
+        if (isGameOver) return;
 
+        soulRegenTimer += Time.deltaTime;
         if (soulRegenTimer >= 1f)
         {
             soulRegenTimer = 0f;
-            AddSoulPoints(soulPointsPerSecond);
+            AddSoulPoints(soulRegenRate);
         }
     }
 
     // ─────────────────────────────────────────
     // SOUL POINTS: PUBLIC FUNCTIONS
+    // (Signature kept identical — DragDropCard depends on this)
     // ─────────────────────────────────────────
 
-    // เพิ่มแต้มวิญญาณ (ใช้ใน Regen + อื่นๆ)
-    public void AddSoulPoints(float amount)
-    {
-        currentSoulPoints = Mathf.Min(currentSoulPoints + amount, maxSoulPoints);
-        onSoulPointsChanged?.Invoke(currentSoulPoints, maxSoulPoints);
-    }
-
-    // หักแต้มวิญญาณ — คืนค่า true ถ้าหักสำเร็จ, false ถ้าแต้มไม่พอ
-    // Step 2 (Drag & Drop) จะเรียกใช้ฟังก์ชันนี้
     public bool SpendSoulPoints(float amount)
     {
         if (currentSoulPoints < amount)
@@ -90,48 +81,75 @@ public class GameManager : MonoBehaviour
         }
 
         currentSoulPoints -= amount;
-        onSoulPointsChanged?.Invoke(currentSoulPoints, maxSoulPoints);
+        UpdateSoulPointsUI();
         return true;
     }
 
-    // เช็คแต้มวิญญาณปัจจุบัน (ไว้ให้ UI หรือระบบอื่นดึงค่า)
-    public float GetSoulPoints() => currentSoulPoints;
+    public void AddSoulPoints(float amount)
+    {
+        currentSoulPoints = Mathf.Min(currentSoulPoints + amount, maxSoulPoints);
+        UpdateSoulPointsUI();
+    }
+
+    void UpdateSoulPointsUI()
+    {
+        if (soulPointsText != null)
+            soulPointsText.text = $"{Mathf.FloorToInt(currentSoulPoints)} / {Mathf.FloorToInt(maxSoulPoints)}";
+    }
 
     // ─────────────────────────────────────────
     // BASE HP: PUBLIC FUNCTIONS
     // ─────────────────────────────────────────
 
-    // ฐานโดนโจมตี — Step 3 (Combat AI) จะเรียกใช้
-    public void DamageBase(float amount)
+    // attackerIsPlayer = true  → Player monster ตี → ลด enemyBaseHP
+    // attackerIsPlayer = false → Enemy monster ตี  → ลด playerBaseHP
+    public void DamageBase(float damage, bool attackerIsPlayer)
     {
-        currentBaseHP = Mathf.Max(currentBaseHP - amount, 0f);
-        onBaseHPChanged?.Invoke(currentBaseHP, maxBaseHP);
-        Debug.Log($"[GameManager] Base took {amount} damage! HP: {currentBaseHP}/{maxBaseHP}");
+        if (isGameOver) return;
 
-        if (currentBaseHP <= 0f)
+        if (attackerIsPlayer)
         {
-            TriggerGameOver();
+            // ผู้เล่นตีฐานศัตรู
+            enemyBaseHP = Mathf.Max(enemyBaseHP - damage, 0f);
+            Debug.Log($"[GameManager] Enemy Base took {damage} dmg! HP: {enemyBaseHP}/{maxEnemyBaseHP}");
+
+            if (enemyBaseHP <= 0f)
+                TriggerGameOver(playerWon: true);
+        }
+        else
+        {
+            // ศัตรูตีฐานผู้เล่น
+            playerBaseHP = Mathf.Max(playerBaseHP - damage, 0f);
+            UpdatePlayerBaseUI();
+            Debug.Log($"[GameManager] Player Base took {damage} dmg! HP: {playerBaseHP}/{maxPlayerBaseHP}");
+
+            if (playerBaseHP <= 0f)
+                TriggerGameOver(playerWon: false);
         }
     }
 
-    // ฮีลฐาน (ถ้าต้องการในอนาคต)
-    public void HealBase(float amount)
+    void UpdatePlayerBaseUI()
     {
-        currentBaseHP = Mathf.Min(currentBaseHP + amount, maxBaseHP);
-        onBaseHPChanged?.Invoke(currentBaseHP, maxBaseHP);
+        if (playerBaseSlider != null)
+        {
+            playerBaseSlider.maxValue = maxPlayerBaseHP;
+            playerBaseSlider.value = playerBaseHP;
+        }
     }
-
-    public float GetBaseHP() => currentBaseHP;
 
     // ─────────────────────────────────────────
     // GAME OVER
     // ─────────────────────────────────────────
-    private void TriggerGameOver()
+    void TriggerGameOver(bool playerWon)
     {
-        Debug.Log("[GameManager] *** GAME OVER *** Base HP reached 0!");
-        onGameOver?.Invoke();
+        if (isGameOver) return;
+        isGameOver = true;
 
-        // TODO: หยุดเกม / โชว์หน้าจอ Game Over ใน Step ถัดๆ ไป
+        Debug.Log(playerWon
+            ? "[GameManager] *** VICTORY *** Enemy Base destroyed!"
+            : "[GameManager] *** GAME OVER *** Player Base destroyed!");
+
+        // TODO: โชว์ Game Over / Victory UI ในขั้นถัดไป
         Time.timeScale = 0f;
     }
 }
