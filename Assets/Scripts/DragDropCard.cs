@@ -81,8 +81,8 @@ public class DragDropCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEnd
         );
         worldPos.z = 0f;
         
-        // ล็อกแกน Y ให้มอนสเตอร์ตกพื้นระดับเดียวกันเสมอ (ปรับแก้ตามระดับพื้นแมพคุณได้)
-        worldPos.y = -2f; 
+        // ล็อกแกน Y ให้อยู่ในระยะ "เลนถนน" ที่เรากำหนด (ปรับตัวเลข -3f กับ -1f ตามความกว้างถนนของฉากคุณได้เลย)
+        worldPos.y = Mathf.Clamp(worldPos.y, -3f, -1f);
 
         // เช็คเขต Frontline ว่าอยู่ในพื้นที่อนุญาตไหม
         bool isValidZone = FrontlineManager.Instance.IsValidSpawnPosition(worldPos.x);
