@@ -4,9 +4,7 @@ public class MonsterAI : MonoBehaviour
 {
     [Header("Data Asset")]
     public MonsterDataSO monsterData; // ช่องสำหรับลากแฟ้มประวัติมาใส่
-    // ─────────────────────────────────────────
-    // IDENTITY & STATS
-    // ─────────────────────────────────────────
+
     [Header("Identity")]
     public bool isPlayer = true;
 
@@ -14,13 +12,10 @@ public class MonsterAI : MonoBehaviour
     public float maxHP = 50f;
     public float moveSpeed = 2f;
     public float attackDamage = 10f;
-    public float attackRange = 1.2f;        // radius for OverlapCircleAll attack check
-    public float detectionRange = 8f;       // radius for spotting targets
+    public float attackRange = 1.2f;        
+    public float detectionRange = 8f;       
     public float attackCooldown = 1.5f;
 
-    // ─────────────────────────────────────────
-    // PRIVATE
-    // ─────────────────────────────────────────
     private float currentHP;
     private float attackTimer = 0f;
     private Transform currentTarget;
@@ -28,70 +23,72 @@ public class MonsterAI : MonoBehaviour
 
     private string enemyMonsterTag;
     private string enemyBaseTag;
+    
+    private Animator anim;
 
     void Start()
     {
-    // ตรวจสอบความปลอดภัยว่าลากแฟ้มข้อมูลมาใส่หรือยัง
-    if (monsterData != null)
-    {
-        maxHP = monsterData.maxHP;
-        moveSpeed = monsterData.moveSpeed;
-        attackDamage = monsterData.attackDamage;
-        attackRange = monsterData.attackRange;
-        detectionRange = monsterData.detectionRange;
-        attackCooldown = monsterData.attackCooldown;
-    }
-    else
-    {
-        Debug.LogWarning($"[MonsterAI] {gameObject.name} ลืมใส่ MonsterDataSO! จะใช้ค่า Default ในโค้ดแทน");
-    }
+        anim = GetComponent<Animator>();
 
-    currentHP = maxHP;
+        if (monsterData != null)
+        {
+            maxHP = monsterData.maxHP;
+            moveSpeed = monsterData.moveSpeed;
+            attackDamage = monsterData.attackDamage;
+            attackRange = monsterData.attackRange;
+            detectionRange = monsterData.detectionRange;
+            attackCooldown = monsterData.attackCooldown;
+        }
+        else
+        {
+            Debug.LogWarning($"[MonsterAI] {gameObject.name} ลืมใส่ MonsterDataSO! จะใช้ค่า Default ในโค้ดแทน");
+        }
 
-    // กำหนด Tag ของฝั่งตรงข้ามอัตโนมัติจาก isPlayer
-    enemyMonsterTag = isPlayer ? "EnemyMonster" : "PlayerMonster";
-    enemyBaseTag    = isPlayer ? "EnemyBase"    : "PlayerBase";
+        currentHP = maxHP;
 
-    // เติมบรรทัดนี้ไว้ล่างสุดของฟังก์ชัน Start() เพื่อดูค่าที่แท้จริงหลังบ้าน
-    Debug.Log($"[CHECK SO] {gameObject.name} โหลดสำเร็จ! ดาเมจจริงในระบบ = {attackDamage} | ความเร็ว = {moveSpeed}");
+        enemyMonsterTag = isPlayer ? "EnemyMonster" : "PlayerMonster";
+        enemyBaseTag    = isPlayer ? "EnemyBase"    : "PlayerBase";
+
+        if (!isPlayer) 
+        {
+            transform.localScale = new Vector3(-1, 1, 1);
+        }
     }
 
     void Update()
     {
         if (isDead) return;
 
-        // ── STEP 1: เช็คว่ามีอะไรอยู่ในระยะ "attackRange" ไหม ──
         Transform attackTarget = FindTargetInRadius(attackRange);
 
         if (attackTarget != null)
         {
-            // มีศัตรูอยู่ในระยะตี → หยุดเดิน, โจมตี
+            // ✅ [อัปเดต] เช็กก่อนว่ามี Animator ไหม ถ้ามีค่อยสั่งหยุดเดิน
+            if (anim != null) anim.SetBool("isWalking", false); 
+            
             currentTarget = attackTarget;
             HandleAttack();
             return;
         }
 
-        // ── STEP 2: ไม่มีอะไรอยู่ในระยะตี → เช็คระยะมองเห็น ──
         Transform detected = FindTargetInRadius(detectionRange);
 
         if (detected != null)
         {
-            // เห็นศัตรูแต่ยังไกล → เดินเข้าหา
+            // ✅ [อัปเดต] เช็กก่อนว่ามี Animator ไหม ถ้ามีค่อยสั่งเดิน
+            if (anim != null) anim.SetBool("isWalking", true);
             MoveToward(detected.position);
         }
         else
         {
-            // ไม่เห็นอะไรเลย → เดินหน้าตามทิศทางทีม
+            // ✅ [อัปเดต] เช็กก่อนว่ามี Animator ไหม ถ้ามีค่อยสั่งเดิน
+            if (anim != null) anim.SetBool("isWalking", true);
             MoveForward();
         }
 
-        // ✅ [แก้ไขแล้ว] ย้ายมาใส่ตรงนี้ เพื่อรีเซ็ตเวลาเฉพาะตอนที่ไม่ได้ทำการโจมตีเท่านั้น
         attackTimer = 0f; 
     }
 
-    // ─────────────────────────────────────────
-    // MOVEMENT
-    // ─────────────────────────────────────────
     void MoveForward()
     {
         Vector3 direction = isPlayer ? Vector3.right : Vector3.left;
@@ -101,15 +98,10 @@ public class MonsterAI : MonoBehaviour
     void MoveToward(Vector3 targetPosition)
     {
         Vector3 direction = (targetPosition.x > transform.position.x) ? Vector3.right : Vector3.left;
+        transform.localScale = new Vector3(direction == Vector3.right ? 1 : -1, 1, 1);
         transform.Translate(direction * moveSpeed * Time.deltaTime);
     }
 
-    // ─────────────────────────────────────────
-    // DETECTION / RANGE CHECK
-    // CRITICAL FIX: Uses Physics2D.OverlapCircleAll (edge-to-edge via colliders)
-    // instead of Vector2.Distance (center-to-center), so attacks correctly
-    // register against large BoxCollider2D bases.
-    // ─────────────────────────────────────────
     Transform FindTargetInRadius(float radius)
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius);
@@ -124,7 +116,6 @@ public class MonsterAI : MonoBehaviour
             bool isValidTarget = hit.CompareTag(enemyMonsterTag) || hit.CompareTag(enemyBaseTag);
             if (!isValidTarget) continue;
 
-            // ใช้ ClosestPoint เพื่อหาระยะจากขอบ Collider จริงๆ (รองรับ Base ที่เป็น BoxCollider2D ใหญ่)
             Vector2 closestPoint = hit.ClosestPoint(transform.position);
             float dist = Vector2.Distance(transform.position, closestPoint);
 
@@ -138,9 +129,6 @@ public class MonsterAI : MonoBehaviour
         return nearest;
     }
 
-    // ─────────────────────────────────────────
-    // COMBAT
-    // ─────────────────────────────────────────
     void HandleAttack()
     {
         attackTimer += Time.deltaTime;
@@ -156,33 +144,38 @@ public class MonsterAI : MonoBehaviour
     {
         if (target == null) return;
 
-        // ── ใส่ Attack Animation / VFX ตรงนี้ในอนาคต ──
+        // ✅ [อัปเดต] เช็กก่อนว่ามี Animator ไหม ถ้ามีค่อยสั่งเล่นท่าง้างมือตี
+        if (anim != null) 
+        {
+            anim.SetTrigger("Attack"); 
+        }
+        else 
+        {
+            // ถ้าเป็นแค่ Mockup (ไม่มีแอนิเมชัน) ให้มันหักเลือดศัตรูทันทีเลย
+            ExecuteDamage();
+        }
+    }
 
-        // ลองหา MonsterAI ก่อน (ถ้าเป้าหมายเป็น Monster)
-        MonsterAI targetMonster = target.GetComponent<MonsterAI>();
+    public void ExecuteDamage()
+    {
+        if (currentTarget == null) return;
+
+        MonsterAI targetMonster = currentTarget.GetComponent<MonsterAI>();
         if (targetMonster != null)
         {
             targetMonster.TakeDamage(attackDamage);
-            Debug.Log($"[MonsterAI] {gameObject.name} attacked monster {target.name} for {attackDamage} dmg.");
+            Debug.Log($"[MonsterAI] {gameObject.name} ป๊าบเข้าให้! โดน {currentTarget.name} ดาเมจ {attackDamage}");
             return;
         }
 
-        // ถ้าไม่ใช่ Monster → ต้องเป็น Base → แจ้ง GameManager พร้อมระบุฝั่งผู้โจมตี
         GameManager.Instance.DamageBase(attackDamage, isPlayer);
-        Debug.Log($"[MonsterAI] {gameObject.name} attacked base {target.name} for {attackDamage} dmg.");
     }
 
-    // ─────────────────────────────────────────
-    // TAKE DAMAGE & DEATH
-    // ─────────────────────────────────────────
     public void TakeDamage(float damage)
     {
         if (isDead) return;
 
         currentHP -= damage;
-
-        // ── ใส่ Hit Animation / VFX ตรงนี้ในอนาคต ──
-
         Debug.Log($"[MonsterAI] {gameObject.name} took {damage} dmg | HP: {currentHP}/{maxHP}");
 
         if (currentHP <= 0f)
@@ -195,15 +188,13 @@ public class MonsterAI : MonoBehaviour
     {
         isDead = true;
 
-        // ── ใส่ Death Animation / VFX ตรงนี้ในอนาคต ──
+        // ✅ [อัปเดต] เช็กก่อนว่ามี Animator ไหม ถ้ามีค่อยสั่งเล่นท่าตาย
+        if (anim != null) anim.SetTrigger("Die");
 
         Debug.Log($"[MonsterAI] {gameObject.name} died.");
-        Destroy(gameObject);
+        Destroy(gameObject, 2f); 
     }
 
-    // ─────────────────────────────────────────
-    // DEBUG GIZMOS
-    // ─────────────────────────────────────────
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
