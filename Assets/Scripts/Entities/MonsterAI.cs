@@ -7,23 +7,28 @@ public class MonsterAI : MonoBehaviour
 
     [Header("Identity")]
     public bool isPlayer = true;
+    public int currentLevel = 1; // เผื่อไว้ทำระบบอัปเลเวลในอนาคต
 
-    [Header("Stats")]
-    public float maxHP = 50f;
-    public float moveSpeed = 2f;
-    public float attackDamage = 10f;
-    public float attackRange = 1.2f;        
-    public float detectionRange = 8f;       
-    public float attackCooldown = 1.5f;
+    // ─────────────────────────────────────────
+    // RUNTIME STATS (ซ่อนไว้เพราะเดี๋ยวไปดึงจาก SO มาทับอยู่ดี)
+    // ─────────────────────────────────────────
+    [HideInInspector] public float maxHP;
+    [HideInInspector] public float moveSpeed;
+    [HideInInspector] public float attackDamage;
+    [HideInInspector] public float attackRange;
+    [HideInInspector] public float detectionRange;
+    [HideInInspector] public float attackCooldown;
 
+    // ─────────────────────────────────────────
+    // ตัวแปรส่วนตัวที่ใช้จัดการระบบภายใน (ซ่อนไว้อยู่แล้ว)
+    // ─────────────────────────────────────────
     private float currentHP;
     private float attackTimer = 0f;
-    private Transform currentTarget;
-    private bool isDead = false;
-
-    private string enemyMonsterTag;
-    private string enemyBaseTag;
-    
+    private bool isDead = false;          // ✅ เพิ่มกลับมา: เช็กสถานะการตาย
+    private Transform currentTarget;      // ✅ เพิ่มกลับมา: เก็บเป้าหมายเป้าหมายที่กำลังตี
+    private string enemyMonsterTag;       // ✅ เพิ่มกลับมา: เก็บชื่อ Tag ของศัตรู
+    private string enemyBaseTag;          // ✅ เพิ่มกลับมา: เก็บชื่อ Tag ของป้อมศัตรู
+    private Rigidbody2D rb;
     private Animator anim;
 
     void Start()
@@ -63,7 +68,6 @@ public class MonsterAI : MonoBehaviour
 
         if (attackTarget != null)
         {
-            // ✅ [อัปเดต] เช็กก่อนว่ามี Animator ไหม ถ้ามีค่อยสั่งหยุดเดิน
             if (anim != null) anim.SetBool("isWalking", false); 
             
             currentTarget = attackTarget;
@@ -75,13 +79,11 @@ public class MonsterAI : MonoBehaviour
 
         if (detected != null)
         {
-            // ✅ [อัปเดต] เช็กก่อนว่ามี Animator ไหม ถ้ามีค่อยสั่งเดิน
             if (anim != null) anim.SetBool("isWalking", true);
             MoveToward(detected.position);
         }
         else
         {
-            // ✅ [อัปเดต] เช็กก่อนว่ามี Animator ไหม ถ้ามีค่อยสั่งเดิน
             if (anim != null) anim.SetBool("isWalking", true);
             MoveForward();
         }
@@ -144,14 +146,12 @@ public class MonsterAI : MonoBehaviour
     {
         if (target == null) return;
 
-        // ✅ [อัปเดต] เช็กก่อนว่ามี Animator ไหม ถ้ามีค่อยสั่งเล่นท่าง้างมือตี
         if (anim != null) 
         {
             anim.SetTrigger("Attack"); 
         }
         else 
         {
-            // ถ้าเป็นแค่ Mockup (ไม่มีแอนิเมชัน) ให้มันหักเลือดศัตรูทันทีเลย
             ExecuteDamage();
         }
     }
@@ -188,7 +188,6 @@ public class MonsterAI : MonoBehaviour
     {
         isDead = true;
 
-        // ✅ [อัปเดต] เช็กก่อนว่ามี Animator ไหม ถ้ามีค่อยสั่งเล่นท่าตาย
         if (anim != null) anim.SetTrigger("Die");
 
         Debug.Log($"[MonsterAI] {gameObject.name} died.");
