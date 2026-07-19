@@ -17,4 +17,9 @@ public class MonsterDataSO : ScriptableObject
 
     [Header("Economy Settings")]
     public float spawnCost = 10f;      // แต้ม Soul ที่ใช้ในการเสกตัวนี้
+
+    [Header("Sub Skill (Auto Cast)")]
+    public float specialDamage = 40f;      // ดาเมจสกิลจะแรงกว่าตีปกติ
+    public float specialCooldown = 5f;     // หลอดฟ้าจะเต็มทุกๆ 5 วินาที
+    public float specialRange = 2f;        // ระยะสกิลอาจจะกว้างกว่าตีปกติ
 }

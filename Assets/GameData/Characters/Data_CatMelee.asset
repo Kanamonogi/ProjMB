@@ -14,10 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MonsterDataSO
   monsterName: 
   cardIcon: {fileID: 0}
-  maxHP: 100
+  maxHP: 300
   moveSpeed: 2
   attackDamage: 20
   attackRange: 1.2
   detectionRange: 8
   attackCooldown: 1.5
   spawnCost: 10
+  specialDamage: 40
+  specialCooldown: 5
+  specialRange: 2
