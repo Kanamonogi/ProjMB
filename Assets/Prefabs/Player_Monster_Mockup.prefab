@@ -144,12 +144,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MonsterAI
   monsterData: {fileID: 0}
   isPlayer: 1
-  maxHP: 50
-  moveSpeed: 2
-  attackDamage: 10
-  attackRange: 0.3
-  detectionRange: 3
-  attackCooldown: 1.5
+  maxHP: 0
+  moveSpeed: 0
+  attackDamage: 0
+  attackRange: 0
+  detectionRange: 0
+  attackCooldown: 0
 --- !u!50 &-2651630407156084055
 Rigidbody2D:
   serializedVersion: 5
